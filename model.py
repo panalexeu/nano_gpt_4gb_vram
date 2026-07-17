@@ -147,6 +147,9 @@ class GPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
+        # report vram usage estimate 
+        print("vram usage estimate (params + optimizer states): %.2fMB" % (self.estimate_vram_usage() / 1024 / 1024))
+
     def get_num_params(self, non_embedding=True):
         """
         Return the number of parameters in the model.
@@ -158,7 +161,21 @@ class GPT(nn.Module):
         if non_embedding:
             n_params -= self.transformer.wpe.weight.numel()
         return n_params
+    
+    def get_num_optimizer_params(self):
+        n_params = sum(p.numel() for _, p in self.named_parameters() if p.requires_grad)
+        return n_params 
 
+    def estimate_vram_usage(self): 
+        # assumption here that everything is in float32 
+        bytes_per_param = 4 
+        bytes_ = sum([
+            self.get_num_params() * bytes_per_param, # parameters 
+            self.get_num_optimizer_params() * bytes_per_param, # gradients 
+            self.get_num_optimizer_params() * 2 * bytes_per_param # optimizer states 
+        ])  
+        return bytes_ 
+    
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
