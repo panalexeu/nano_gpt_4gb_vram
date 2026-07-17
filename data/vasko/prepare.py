@@ -7,6 +7,23 @@ import requests
 import tiktoken 
 import numpy as np
 
+def _tokenize(enc, text: str, lower: bool = True) -> list[int]: 
+        text = text.lower() if lower else text
+        ids = enc.encode_ordinary(text)
+        ids.append(enc.eot_token)
+        return ids 
+
+def _pad(ids: list[str], max_tokens: int = 128, pad: int = 50257) -> list[int] : 
+                                                         # ^^^^^ - <|endoftext|> is 50256
+    split_ids = []
+    for i in range(0, len(ids), max_tokens): 
+        ids_ = ids[i:i+max_tokens] 
+        n_ids = len(ids_)
+        if n_ids < max_tokens:
+            ids_ = ids_ + ([pad] * (max_tokens - n_ids)) 
+        split_ids.extend(ids_)
+    return split_ids 
+
 if __name__ == '__main__': 
     cur_dir = os.path.dirname(__file__)
 
@@ -25,11 +42,6 @@ if __name__ == '__main__':
     
     # TODO in future: train and use my own tokenizer 
     enc = tiktoken.get_encoding("gpt2") 
-    def _tokenize(text: str, lower: bool = True) -> list[int]: 
-        text = text.lower() if lower else text
-        ids = enc.encode_ordinary(text)
-        ids.append(enc.eot_token)
-        return ids 
     
     # shuffle, tokenize, split, report 
     split_point = 0.9
@@ -38,7 +50,7 @@ if __name__ == '__main__':
     random.shuffle(lines) 
     
     ids = []
-    for line in lines: ids.extend(_tokenize(line))
+    for line in lines: ids.extend(_pad(_tokenize(enc, line)))
 
     train_ids = ids[:int(len(ids)*split_point)]
     val_ids = ids[int(len(ids)*split_point):]
