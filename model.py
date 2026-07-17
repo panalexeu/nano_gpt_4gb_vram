@@ -147,9 +147,6 @@ class GPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
-        # report vram usage estimate 
-        print("vram usage estimate (params + optimizer states): %.2fMB" % (self.estimate_vram_usage() / 1024 / 1024))
-
     def get_num_params(self, non_embedding=True):
         """
         Return the number of parameters in the model.
@@ -319,6 +316,7 @@ class GPT(nn.Module):
         mfu = flops_achieved / flops_promised
         return mfu
 
+    # TODO: note, no kv_cache 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
         """
